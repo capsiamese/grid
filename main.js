@@ -1,62 +1,82 @@
 const canvas = document.querySelector("#glcanvas");
 const ctx = canvas.getContext("2d");
 
-main();
-function main() {
-  window.requestAnimationFrame(loop);
-}
-
-
-function loop() {
-  base();
-  animation();
-
-  window.requestAnimationFrame(loop);
-}
-
-const w = 900;
-const h = 600;
-
-//'#bc13fe'
+const width = 900;
+const height = 600;
 const neno = 'rgba(188,19,254, 25)';
 const black = '#000000';
+const fps = 90;
 
-function base() {
-  ctx.fillStyle = black;
-  ctx.fillRect(0, 0, w, h);
-  drawLine(0, h / 2, w, h / 2);
-  drawLine(w / 2, h / 2 - 10, w / 2, h / 2 + 10);
-  ctx.fillStyle = neno;
-  ctx.strokeStyle = neno;
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  const px = w / 2;
-  const py = h / 2;
-  const step = w / 3;
-  for (var i = -w * 4; i <= w * 8; i += step) {
-    drawLine(px, py, i, h);
+main();
+function main() {
+  const list = generateBuilding(0, width, height / 2, 20, 20, 5);
+  const move = verticalMove(0, height / 2 + 20 * 4, width, height);
+  setInterval(loop(list, move), 1000/fps);
+}
+
+function loop(list, move) {
+  return () => {
+    ctx.fillStyle = black;
+    ctx.fillRect(0, 0, width, height);
+    horizonLine(0, height / 2, width, height);
+    renderBuilding(list);
+    move();
   }
-
-  ctx.fillStyle = black;
-  ctx.fillRect(0, h / 2, w, 30);
-  drawLine(0, h / 2 + 30, w, 330);
-
-  window.requestAnimationFrame(animation);
 }
 
 function horizonLine(x0, y0, x1, y1) {
   const ofs = ctx.fillStyle;
   const oss = ctx.stroke;
+  const lw = ctx.lineWidth;
+  ctx.fillStyle = neno;
+  ctx.strokeStyle = neno;
+  ctx.lineWidth = 4;
 
-  const pivotX = (x1-x0)/2;
+  const w = x1 - x0;
+  const pivotX = w / 2;
   const pivotY = y0;
-  const endStep = (x1-x0) / 3;
-
-
+  const endStep = w / 3;
+  for (var i = -w * 4; i <= w * 8; i += endStep) {
+    drawLine(pivotX, pivotY, i, y1);
+  }
 
   ctx.fillStyle = ofs;
   ctx.stroke = oss;
+  ctx.lineWidth = lw;
 }
+
+function generateBuilding(start, end, baseLine, blkW, blkH, blkMax) {
+  const th = blkH * (blkMax - 1);
+  let list = [{
+    X: start, Y: baseLine,
+    W: end - start, H: th,
+  }];
+  for (var i = start; i <= end; i += blkW) {
+    var h = (parseInt(Math.random() * blkMax)) * blkH
+    list.push({
+      X: i, Y: baseLine + th,
+      W: blkW, H: -h,
+    });
+  }
+  return list;
+}
+
+function renderBuilding(list) {
+  const os = ctx.fillStyle;
+  const bg = list[0];
+  var gradient = ctx.createLinearGradient(bg.X, bg.Y, bg.X, bg.Y + bg.H);
+  gradient.addColorStop(0, 'black');
+  gradient.addColorStop(1, neno);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(bg.X, bg.Y, bg.W, bg.H);
+
+  ctx.fillStyle = black;
+  for (const i of list.slice(1)) {
+    ctx.fillRect(i.X, i.Y, i.W, i.H);
+  }
+  ctx.fillStyle = os;
+}
+
 
 function drawLine(x1, y1, x2, y2) {
   ctx.beginPath();
@@ -66,32 +86,17 @@ function drawLine(x1, y1, x2, y2) {
   ctx.stroke();
 }
 
-const fps = 90;
-var cyc = 0;
-
-function animation() {
-  cyc = (cyc+1)%fps;
-
-  let startY = h/2+30;
-  let step = (h- startY) / 6;
-
-  for (var i=startY; i<=h; i+=step) {
-    let p = i+(step/fps)*cyc;
-    drawLine(0, p, w, p);
+function verticalMove(x0, y0, x1, y1, lineCnt = 6) {
+  var frame = 0;
+  const step = (y1 - y0) / lineCnt
+  const w = x1 - x0;
+  return () => {
+    frame = (frame + 1) % fps;
+    for (var i = y0; i <= y1; i += step) {
+      var p = i + (step / fps) * frame;
+      drawLine(0, p, w, p);
+    }
   }
-}
-
-function bar(x0, y0, x1, y1, cnt) {
-  const h0 = y1-y0;
-  const w0 = x1-x0;
-  const step = w0 / cnt;
-  const hh = h0 / 5;
-  let old = ctx.lineWidth;
-  for (var i=x0; i<=x1; i+=step) {
-    var hhh = (Math.random() * 10)
-    ctx.fillRect(i, y1, step, hh * hhh);
-  }
-  ctx.lineWidth = old;
 }
 
 // https://towardsdatascience.com/creating-synthwave-with-matplotlib-ea7c9be59760
