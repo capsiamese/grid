@@ -10,7 +10,7 @@ const fps = 90;
 main();
 function main() {
   const list = generateBuilding(0, width, height / 2, 20, 20, 5);
-  const move = verticalMove(0, height / 2 + 20 * 4, width, height);
+  const move = verticalMove(0, height / 2 + 20 * 4, width, height, 5);
   setInterval(loop(list, move), 1000/fps);
 }
 
